@@ -69,6 +69,10 @@ const resizeHandleType /*: ReactPropsChainableTypeChecker*/ = exports.resizeHand
   resizeHandles: ResizeHandleAxis[],
   resizeHandle?: ResizeHandle,
   allowOverlap: boolean,
+  gapFillHeight: number,
+  fillGaps: boolean,
+  lastRowGaps: number,
+  GapComponent: ReactElement,
 
   // Callbacks
   onLayoutChange: Layout => void,
@@ -142,6 +146,17 @@ var _default = exports.default = {
   // an item past the barrier. They can push items beyond the barrier, though.
   // Intentionally not documented for this reason.
   maxRows: _propTypes.default.number,
+  //
+  // Gap props
+  //
+  // fill empty spaces in grid with GapComponent
+  fillGaps: _propTypes.default.bool,
+  // should there be an extra gap below the last row of items, and if so how many gap fillers in that row
+  lastRowGap: _propTypes.default.number,
+  // the gap filling component
+  GapComponent: _propTypes.default.func,
+  // how tall (max) the gap filler should grow to be
+  gapFillHeight: _propTypes.default.number,
   //
   // Flags
   //

@@ -67,9 +67,9 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
     super(...arguments);
     _defineProperty(this, "state", {
       activeDrag: null,
-      layout: (0, _utils.synchronizeLayoutWithChildren)(this.props.layout, this.props.children, this.props.cols,
+      layout: (0, _utils.fillInGaps)((0, _utils.synchronizeLayoutWithChildren)(this.props.layout, this.props.children, this.props.cols,
       // Legacy support for verticalCompact: false
-      (0, _utils.compactType)(this.props), this.props.allowOverlap),
+      (0, _utils.compactType)(this.props), this.props.allowOverlap), this.props.cols, this.props.fillGaps, this.props.lastRowGaps, this.props.gapFillHeight),
       mounted: false,
       oldDragItem: null,
       oldLayout: null,
@@ -136,7 +136,10 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       const {
         cols,
         allowOverlap,
-        preventCollision
+        preventCollision,
+        fillGaps,
+        lastRowGaps,
+        gapFillHeight
       } = this.props;
       const l = (0, _utils.getLayoutItem)(layout, i);
       if (!l) return;
@@ -155,8 +158,11 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       const isUserAction = true;
       layout = (0, _utils.moveElement)(layout, l, x, y, isUserAction, preventCollision, (0, _utils.compactType)(this.props), cols, allowOverlap);
       this.props.onDrag(layout, oldDragItem, l, placeholder, e, node);
+
+      // Re-compact the layout and set the drag placeholder.
+      const compactedLayout = allowOverlap ? layout.filter(i => !i.isGap) : (0, _utils.compact)(layout.filter(i => !i.isGap), (0, _utils.compactType)(this.props), cols);
       this.setState({
-        layout: allowOverlap ? layout : (0, _utils.compact)(layout, (0, _utils.compactType)(this.props), cols),
+        layout: (0, _utils.fillInGaps)(compactedLayout, cols, fillGaps, lastRowGaps, gapFillHeight),
         activeDrag: placeholder
       });
     });
@@ -183,7 +189,10 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       const {
         cols,
         preventCollision,
-        allowOverlap
+        allowOverlap,
+        fillGaps,
+        lastRowGaps,
+        gapFillHeight
       } = this.props;
       const l = (0, _utils.getLayoutItem)(layout, i);
       if (!l) return;
@@ -193,7 +202,8 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       layout = (0, _utils.moveElement)(layout, l, x, y, isUserAction, preventCollision, (0, _utils.compactType)(this.props), cols, allowOverlap);
 
       // Set state
-      const newLayout = allowOverlap ? layout : (0, _utils.compact)(layout, (0, _utils.compactType)(this.props), cols);
+      const compactedLayout = allowOverlap ? layout : (0, _utils.compact)(layout, (0, _utils.compactType)(this.props), cols);
+      const newLayout = (0, _utils.fillInGaps)(compactedLayout, cols, fillGaps, lastRowGaps, gapFillHeight);
       this.props.onDragStop(newLayout, oldDragItem, l, null, e, node);
       const {
         oldLayout
@@ -239,7 +249,10 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       const {
         cols,
         preventCollision,
-        allowOverlap
+        allowOverlap,
+        fillGaps,
+        lastRowGaps,
+        gapFillHeight
       } = this.props;
       let shouldMoveItem = false;
       let finalLayout;
@@ -311,8 +324,9 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       this.props.onResize(finalLayout, oldResizeItem, l, placeholder, e, node);
 
       // Re-compact the newLayout and set the drag placeholder.
+      const compactedLayout = allowOverlap ? newLayout.filter(i => !i.isGap) : (0, _utils.compact)(newLayout.filter(i => !i.isGap), (0, _utils.compactType)(this.props), cols);
       this.setState({
-        layout: allowOverlap ? finalLayout : (0, _utils.compact)(finalLayout, (0, _utils.compactType)(this.props), cols),
+        layout: (0, _utils.fillInGaps)(compactedLayout, cols, fillGaps, lastRowGaps, gapFillHeight),
         activeDrag: placeholder
       });
     });
@@ -327,12 +341,16 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       } = this.state;
       const {
         cols,
-        allowOverlap
+        allowOverlap,
+        fillGaps,
+        lastRowGaps,
+        gapFillHeight
       } = this.props;
       const l = (0, _utils.getLayoutItem)(layout, i);
 
       // Set state
-      const newLayout = allowOverlap ? layout : (0, _utils.compact)(layout, (0, _utils.compactType)(this.props), cols);
+      const compactedLayout = allowOverlap ? layout : (0, _utils.compact)(layout, (0, _utils.compactType)(this.props), cols);
+      const newLayout = (0, _utils.fillInGaps)(compactedLayout, cols, fillGaps, lastRowGaps, gapFillHeight);
       this.props.onResizeStop(newLayout, oldResizeItem, l, null, e, node);
       const {
         oldLayout
@@ -516,7 +534,7 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
     if (newLayoutBase) {
       const newLayout = (0, _utils.synchronizeLayoutWithChildren)(newLayoutBase, nextProps.children, nextProps.cols, (0, _utils.compactType)(nextProps), nextProps.allowOverlap);
       return {
-        layout: newLayout,
+        layout: (0, _utils.fillInGaps)(newLayout, nextProps.cols, nextProps.fillGaps, nextProps.lastRowGaps, nextProps.gapFillHeight),
         // We need to save these props to state for using
         // getDerivedStateFromProps instead of componentDidMount (in which we would get extra rerender)
         compactType: nextProps.compactType,
@@ -554,8 +572,10 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
   }
   onLayoutMaybeChanged(newLayout /*: Layout*/, oldLayout /*: ?Layout*/) {
     if (!oldLayout) oldLayout = this.state.layout;
-    if (!(0, _fastEquals.deepEqual)(oldLayout, newLayout)) {
-      this.props.onLayoutChange(newLayout);
+    const previousLayout = oldLayout.filter(item => !item.isGap);
+    const nextLayout = newLayout.filter(item => !item.isGap);
+    if (!(0, _fastEquals.deepEqual)(previousLayout, nextLayout)) {
+      this.props.onLayoutChange(nextLayout);
     }
   }
   /**
@@ -598,6 +618,50 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       useCSSTransforms: useCSSTransforms,
       transformScale: transformScale
     }, /*#__PURE__*/React.createElement("div", null));
+  }
+
+  /**
+   * Fill all gaps with gapComponent
+   * @return {Element} Placeholder div.
+   */
+  addGaps() /*: ?ReactElement<any>*/{
+    const {
+      width,
+      cols,
+      fillGaps,
+      margin,
+      containerPadding,
+      rowHeight,
+      maxRows,
+      useCSSTransforms,
+      GapComponent
+    } = this.props;
+    const {
+      layout,
+      activeDrag
+    } = this.state;
+    if (!fillGaps) return null;
+    const gapItems = layout.filter(item => item.isGap);
+    return gapItems.map(gap => /*#__PURE__*/React.createElement(_GridItem.default, {
+      key: gap.i,
+      w: gap.w,
+      h: gap.h,
+      x: gap.x,
+      y: gap.y,
+      i: gap.i,
+      containerWidth: width,
+      className: "react-grid-gap",
+      cols: cols,
+      margin: margin,
+      containerPadding: containerPadding || margin,
+      maxRows: maxRows,
+      rowHeight: rowHeight,
+      isDraggable: false,
+      isResizable: false,
+      useCSSTransforms: useCSSTransforms
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "react-grid-gap-content"
+    }, /*#__PURE__*/React.createElement(GapComponent, gap))));
   }
 
   /**
@@ -696,7 +760,7 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       onDragLeave: isDroppable ? this.onDragLeave : _utils.noop,
       onDragEnter: isDroppable ? this.onDragEnter : _utils.noop,
       onDragOver: isDroppable ? this.onDragOver : _utils.noop
-    }, React.Children.map(this.props.children, child => this.processGridItem(child)), isDroppable && this.state.droppingDOMNode && this.processGridItem(this.state.droppingDOMNode, true), this.placeholder());
+    }, React.Children.map(this.props.children, child => this.processGridItem(child)), isDroppable && this.state.droppingDOMNode && this.processGridItem(this.state.droppingDOMNode, true), this.placeholder(), this.addGaps());
   }
 }
 exports.default = ReactGridLayout;
@@ -715,6 +779,10 @@ _defineProperty(ReactGridLayout, "defaultProps", {
   rowHeight: 150,
   maxRows: Infinity,
   // infinite vertical growth
+  fillGaps: false,
+  lastRowGaps: 0,
+  GapComponent: null,
+  gapFillHeight: 1,
   layout: [],
   margin: [10, 10],
   isBounded: false,
