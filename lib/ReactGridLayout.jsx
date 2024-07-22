@@ -644,6 +644,7 @@ export default class ReactGridLayout extends React.Component<Props, State> {
         rowHeight={rowHeight}
         isDraggable={false}
         isResizable={false}
+        isBounded={false}
         useCSSTransforms={useCSSTransforms}
       >
         <div className="react-grid-gap-content">

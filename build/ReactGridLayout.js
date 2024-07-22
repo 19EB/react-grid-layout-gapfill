@@ -658,6 +658,7 @@ class ReactGridLayout extends React.Component /*:: <Props, State>*/{
       rowHeight: rowHeight,
       isDraggable: false,
       isResizable: false,
+      isBounded: false,
       useCSSTransforms: useCSSTransforms
     }, /*#__PURE__*/React.createElement("div", {
       className: "react-grid-gap-content"
